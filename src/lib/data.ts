@@ -21,14 +21,14 @@ export const GOAL_ICONS = ["🕋","🕌","🚗","💍","💼","🏡","📱","✈
 export const autoClassify = (text: string): number => {
   const t = text.toLowerCase();
   if (/مطعم|برجر|بيتزا|شاورما|كنتاكي|ماكدونالدز|rest|food|lunch|dinner|talabat/.test(t)) return 1;
-  if (/قهوة|كافيه|ستاربكس|coffee|cafe|cappuccino/.test(t)) return 2;
-  if (/سوق|تسوق|mall|lulu|carrefour|amazon/.test(t)) return 3;
-  if (/ملابس|cloth|zara|h&m|fashion/.test(t)) return 4;
+  if (/قهوة|كافيه|coffee|cafe|cappuccino/.test(t)) return 2;
+  if (/سوق|تسوق|mall|amazon/.test(t)) return 3;
+  if (/ملابس|cloth|fashion/.test(t)) return 4;
   if (/وقود|بنزين|محطة|fuel|petrol|gas/.test(t)) return 5;
   if (/تاكسي|أوبر|uber|careem|مواصلات/.test(t)) return 6;
   if (/إيجار|فاتورة|كهرباء|ماء|rent|electric/.test(t)) return 7;
-  if (/اتصال|موبايل|انترنت|batelco|stc|zain/.test(t)) return 8;
-  if (/سينما|ترفيه|لعب|cinema|game|netflix|شاهد/.test(t)) return 9;
+  if (/اتصال|موبايل|انترنت/.test(t)) return 8;
+  if (/سينما|ترفيه|لعب|cinema|game|شاهد/.test(t)) return 9;
   if (/صدقة|تبرع|جمعية|charity/.test(t)) return 10;
   if (/يتيم|كفالة|orphan/.test(t)) return 11;
   if (/سفر|فندق|طيران|hotel|flight|travel/.test(t)) return 12;
@@ -77,21 +77,21 @@ const y = today.getFullYear();
 const d = today.getDate();
 
 export const DEMO_EXPENSES: Expense[] = [
-  { id: "e1",  amount: 8.5,  place: "ستاربكس",             category: 2,  date: new Date(y,m,d-0).toISOString(), note: "قهوة الصباح" },
-  { id: "e2",  amount: 23,   place: "مطعم البيك",           category: 1,  date: new Date(y,m,d-1).toISOString(), note: "غداء" },
+  { id: "e1",  amount: 8.5,  place: "قهوة البحرين",             category: 2,  date: new Date(y,m,d-0).toISOString(), note: "قهوة الصباح" },
+  { id: "e2",  amount: 23,   place: "مطعم الريف",           category: 1,  date: new Date(y,m,d-1).toISOString(), note: "غداء" },
   { id: "e3",  amount: 45,   place: "محطة وقود جيزة",       category: 5,  date: new Date(y,m,d-1).toISOString(), note: "بنزين" },
-  { id: "e4",  amount: 120,  place: "H&M City Centre",      category: 4,  date: new Date(y,m,d-2).toISOString(), note: "" },
-  { id: "e5",  amount: 15,   place: "ناكيد برجر",           category: 1,  date: new Date(y,m,d-2).toISOString(), note: "عشاء" },
+  { id: "e4",  amount: 120,  place: "محل ملابس",      category: 4,  date: new Date(y,m,d-2).toISOString(), note: "" },
+  { id: "e5",  amount: 15,   place: "مطعم البرجر",           category: 1,  date: new Date(y,m,d-2).toISOString(), note: "عشاء" },
   { id: "e6",  amount: 5,    place: "قهوة عدن",             category: 2,  date: new Date(y,m,d-3).toISOString(), note: "" },
   { id: "e7",  amount: 30,   place: "جمعية خيرية",          category: 10, date: new Date(y,m,d-3).toISOString(), note: "صدقة" },
-  { id: "e8",  amount: 85,   place: "LuLu Hypermarket",     category: 3,  date: new Date(y,m,d-4).toISOString(), note: "مشتريات البيت" },
+  { id: "e8",  amount: 85,   place: "سوبرماركت",     category: 3,  date: new Date(y,m,d-4).toISOString(), note: "مشتريات البيت" },
   { id: "e9",  amount: 12,   place: "Talabat",              category: 1,  date: new Date(y,m,d-5).toISOString(), note: "" },
   { id: "e10", amount: 18,   place: "نتفليكس + شاهد",       category: 9,  date: new Date(y,m,d-6).toISOString(), note: "اشتراكات" },
-  { id: "e11", amount: 7.5,  place: "ستاربكس الرفاع",       category: 2,  date: new Date(y,m,d-7).toISOString(), note: "" },
-  { id: "e12", amount: 35,   place: "Zara Bahrain City",    category: 4,  date: new Date(y,m,d-8).toISOString(), note: "" },
+  { id: "e11", amount: 7.5,  place: "قهوة الرفاع",       category: 2,  date: new Date(y,m,d-7).toISOString(), note: "" },
+  { id: "e12", amount: 35,   place: "محل أزياء",    category: 4,  date: new Date(y,m,d-8).toISOString(), note: "" },
   { id: "e13", amount: 6,    place: "أوبر",                 category: 6,  date: new Date(y,m,d-8).toISOString(), note: "" },
   { id: "e14", amount: 20,   place: "صيدلية البحرين",       category: 14, date: new Date(y,m,d-9).toISOString(), note: "دواء" },
-  { id: "e15", amount: 50,   place: "Batelco",              category: 8,  date: new Date(y,m,d-10).toISOString(), note: "فاتورة الجوال" },
+  { id: "e15", amount: 50,   place: "شركة اتصالات",              category: 8,  date: new Date(y,m,d-10).toISOString(), note: "فاتورة الجوال" },
 ];
 
 export const DEMO_SALARY: Salary = {

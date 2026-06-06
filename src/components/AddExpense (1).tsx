@@ -129,9 +129,9 @@ export default function AddExpense({ onAdd }: { onAdd: (e: Expense) => void }) {
       {/* Quick Input */}
       <div style={{ background: "linear-gradient(135deg, #0F1C2E, #162236)", border: "1px solid #B8860B33", borderRadius: 16, padding: 24 }}>
         <h3 style={{ color: "#B8860B", margin: "0 0 8px", fontSize: 15 }}>⚡ إدخال سريع</h3>
-        <p style={{ color: "#667788", fontSize: 12, margin: "0 0 12px" }}>مثال: 3.5 - ستاربكس</p>
+        <p style={{ color: "#667788", fontSize: 12, margin: "0 0 12px" }}>مثال: 3.5 - مطعم الوليد</p>
         <div style={{ display: "flex", gap: 8 }}>
-          <input value={quickInput} onChange={e => setQuickInput(e.target.value)} onKeyDown={e => e.key === "Enter" && parseQuick(quickInput)} placeholder="3.5 - مطعم البيك" style={{ ...inputStyle, flex: 1 }} />
+          <input value={quickInput} onChange={e => setQuickInput(e.target.value)} onKeyDown={e => e.key === "Enter" && parseQuick(quickInput)} placeholder="3.5 - مطعم الدوحة" style={{ ...inputStyle, flex: 1 }} />
           <button onClick={() => parseQuick(quickInput)} style={{ ...btnGold, padding: "0 20px", borderRadius: 12 }}>تحليل</button>
         </div>
       </div>
@@ -151,7 +151,7 @@ export default function AddExpense({ onAdd }: { onAdd: (e: Expense) => void }) {
               <textarea
                 value={smsText}
                 onChange={e => { setSmsText(e.target.value); setSmsError(false); setSmsResult(null); setPlaceDone(false); }}
-                placeholder="Your account has been debited with BHD5.000 at Starbucks..."
+                placeholder="Your account has been debited with BHD5.000 at Al-Reef Bakery..."
                 rows={4}
                 style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
               />
@@ -185,7 +185,7 @@ export default function AddExpense({ onAdd }: { onAdd: (e: Expense) => void }) {
                         value={manualPlace}
                         onChange={e => setManualPlace(e.target.value)}
                         onKeyDown={e => e.key === "Enter" && confirmPlace()}
-                        placeholder="مثال: ستاربكس، كارفور..."
+                        placeholder="مثال: مطعم، صيدلية، محطة وقود..."
                         style={{ ...inputStyle, flex: 1, padding: "10px 14px" }}
                         autoFocus
                       />
