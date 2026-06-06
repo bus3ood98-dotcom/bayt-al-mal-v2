@@ -4,30 +4,49 @@ import { CATEGORIES, autoClassify, generateId, Expense } from "@/lib/data";
 import { inputStyle, btnGold } from "@/components/ui";
 
 // ── Bank SMS Parser ────────────────────────────────────────
-function parseBankSMS(text: string): { amount: number; place: string } | null {
-  // بنك البحرين الوطني / بنك البحرين والكويت وغيرها
-  const patterns = [
-    // "تم الخصم بمبلغ 5.000 د.ب من حسابك لدى ستاربكس"
-    /(?:تم الخصم|خُصم|خصم).*?(\d+[\.,]\d+)\s*(?:د\.?ب|BHD|BD).*?(?:لدى|في|من)\s+(.+?)(?:\s|$)/i,
-    // "Purchase of BD 12.500 at McDonald's"
-    /(?:purchase|payment|spent).*?(?:BD|BHD)\s*(\d+[\.,]\d+).*?(?:at|@)\s+(.+?)(?:\s+on|\s+date|$)/i,
-    // "5.000 BD - ستاربكس"
-    /(\d+[\.,]\d+)\s*(?:BD|BHD|د\.?ب)\s*[-–]\s*(.+)/i,
-    // "Amount: 3.500 BD Merchant: Costa Coffee"
-    /amount[:\s]+(\d+[\.,]\d+).*?merchant[:\s]+(.+?)(?:\s+date|$)/i,
-    // "قيمة المشتريات 8.750 د.ب - سيتي سنتر"
-    /(?:قيمة|مبلغ).*?(\d+[\.,]\d+)\s*(?:د\.?ب|BD).*?[-–]\s*(.+)/i,
+function parseBankSMS(text: string): { amount: number; place: string; placeKnown: boolean } | null {
+  const t = text.trim();
+
+  const amountPatterns = [
+    /BHD\s*(\d+[\.,]\d+)/i,
+    /BD\s*(\d+[\.,]\d+)/i,
+    /(\d+[\.,]\d+)\s*BHD/i,
+    /(\d+[\.,]\d+)\s*BD/i,
+    /(\d+[\.,]\d+)\s*د\.?ب/i,
+    /د\.?ب\s*(\d+[\.,]\d+)/i,
+    /مبلغ\s+(\d+[\.,]\d+)/i,
   ];
 
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match) {
-      const amount = parseFloat(match[1].replace(',', '.'));
-      const place = match[2].trim().replace(/[*#]/g, '').trim();
-      if (amount > 0 && place) return { amount, place };
+  let amount = 0;
+  for (const p of amountPatterns) {
+    const m = t.match(p);
+    if (m) { amount = parseFloat(m[1].replace(',', '.')); break; }
+  }
+  if (!amount) return null;
+
+  const placePatterns = [
+    /\bat\s+([A-Za-z0-9&'\-. ]{2,30}?)(?:\s+on|\s+\d|\.|,|$)/i,
+    /\bfrom\s+([A-Za-z0-9&'\-. ]{2,30}?)(?:\s+on|\s+\d|\.|,|$)/i,
+    /(?:لدى|في متجر|عند)\s+(.{2,20}?)(?:\s+بتاريخ|\s+في|\.|،|$)/,
+    /merchant[:\s]+([A-Za-z0-9&'\-. ]{2,30}?)(?:\s+date|\s+\d|\.|$)/i,
+    /POS\s*[-–]\s*([A-Za-z0-9&'\-. ]{2,30}?)(?:\s|\.|,|$)/i,
+  ];
+
+  for (const p of placePatterns) {
+    const m = t.match(p);
+    if (m) {
+      const place = m[1].trim().replace(/[*#]/g, '').trim();
+      if (place.length >= 2) return { amount, place, placeKnown: true };
     }
   }
-  return null;
+
+  // المبلغ موجود بس ما في اسم متجر
+  let place = "عملية بنكية";
+  if (/standing order/i.test(t)) place = "أمر دائم";
+  else if (/transfer/i.test(t)) place = "تحويل";
+  else if (/atm/i.test(t)) place = "صراف آلي";
+  else if (/purchase/i.test(t)) place = "مشتريات";
+  return { amount, place, placeKnown: false };
 }
 
 export default function AddExpense({ onAdd }: { onAdd: (e: Expense) => void }) {
@@ -39,9 +58,11 @@ export default function AddExpense({ onAdd }: { onAdd: (e: Expense) => void }) {
   const [success, setSuccess] = useState(false);
   const [quickInput, setQuickInput] = useState("");
   const [smsText, setSmsText] = useState("");
-  const [smsResult, setSmsResult] = useState<{ amount: number; place: string } | null>(null);
+  const [smsResult, setSmsResult] = useState<{ amount: number; place: string; placeKnown: boolean } | null>(null);
   const [smsError, setSmsError] = useState(false);
   const [activeTab, setActiveTab] = useState<"manual" | "sms">("manual");
+  const [manualPlace, setManualPlace] = useState("");
+  const [placeDone, setPlaceDone] = useState(false);
 
   useEffect(() => {
     if (place) setCategory(autoClassify(place));
@@ -61,19 +82,33 @@ export default function AddExpense({ onAdd }: { onAdd: (e: Expense) => void }) {
     if (result) {
       setSmsResult(result);
       setAmount(String(result.amount));
-      setPlace(result.place);
-      setCategory(autoClassify(result.place));
       setSmsError(false);
+      if (result.placeKnown) {
+        setPlace(result.place);
+        setPlaceDone(true);
+      } else {
+        setPlace(result.place);
+        setPlaceDone(false);
+        setManualPlace("");
+      }
     } else {
       setSmsResult(null);
       setSmsError(true);
+      setPlaceDone(false);
     }
+  };
+
+  const confirmPlace = () => {
+    const p = manualPlace.trim() || place;
+    setPlace(p);
+    setCategory(autoClassify(p));
+    setPlaceDone(true);
   };
 
   const handleSubmit = () => {
     if (!amount || !place) return;
     onAdd({ id: generateId(), amount: parseFloat(amount), place, category, note, date: new Date(date).toISOString() });
-    setAmount(""); setPlace(""); setNote(""); setSmsText(""); setSmsResult(null);
+    setAmount(""); setPlace(""); setNote(""); setSmsText(""); setSmsResult(null); setPlaceDone(false); setManualPlace("");
     setSuccess(true);
     setTimeout(() => setSuccess(false), 2000);
   };
@@ -85,6 +120,8 @@ export default function AddExpense({ onAdd }: { onAdd: (e: Expense) => void }) {
     fontFamily: "Cairo, sans-serif", fontWeight: active ? 700 : 400,
     fontSize: 13, cursor: "pointer", transition: "all 0.2s",
   });
+
+  const showForm = activeTab === "manual" || (smsResult !== null && placeDone);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 600 }}>
@@ -102,7 +139,7 @@ export default function AddExpense({ onAdd }: { onAdd: (e: Expense) => void }) {
       {/* Tabs */}
       <div style={{ background: "linear-gradient(135deg, #0F1C2E, #162236)", border: "1px solid #B8860B33", borderRadius: 16, padding: 24 }}>
         <div style={{ display: "flex", gap: 8, background: "#0A1628", borderRadius: 12, padding: 4, marginBottom: 20 }}>
-          <button style={tabStyle(activeTab === "manual")} onClick={() => setActiveTab("manual")}>✏️ إدخال يدوي</button>
+          <button style={tabStyle(activeTab === "manual")} onClick={() => { setActiveTab("manual"); setSmsResult(null); setPlaceDone(false); }}>✏️ إدخال يدوي</button>
           <button style={tabStyle(activeTab === "sms")} onClick={() => setActiveTab("sms")}>📱 رسالة البنك</button>
         </div>
 
@@ -113,8 +150,8 @@ export default function AddExpense({ onAdd }: { onAdd: (e: Expense) => void }) {
               <label style={{ color: "#8899AA", fontSize: 12, display: "block", marginBottom: 6 }}>الصق نص رسالة البنك هنا</label>
               <textarea
                 value={smsText}
-                onChange={e => { setSmsText(e.target.value); setSmsError(false); setSmsResult(null); }}
-                placeholder="مثال: تم الخصم بمبلغ 5.000 د.ب من حسابك لدى ستاربكس..."
+                onChange={e => { setSmsText(e.target.value); setSmsError(false); setSmsResult(null); setPlaceDone(false); }}
+                placeholder="Your account has been debited with BHD5.000 at Starbucks..."
                 rows={4}
                 style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
               />
@@ -122,15 +159,63 @@ export default function AddExpense({ onAdd }: { onAdd: (e: Expense) => void }) {
             <button onClick={handleParseSMS} style={{ ...btnGold, width: "100%", padding: 12 }}>
               🔍 تحليل الرسالة
             </button>
+
+            {/* نجح التحليل */}
             {smsResult && (
               <div style={{ background: "#52BE8022", border: "1px solid #52BE8044", borderRadius: 12, padding: 16 }}>
-                <div style={{ color: "#52BE80", fontFamily: "Cairo, sans-serif", fontSize: 13, marginBottom: 8, fontWeight: 700 }}>✅ تم التحليل بنجاح!</div>
-                <div style={{ color: "#F5F0E8", fontFamily: "Cairo, sans-serif", fontSize: 14 }}>
-                  <span style={{ color: "#8899AA" }}>المبلغ: </span>{smsResult.amount.toFixed(3)} د.ب
-                  <span style={{ color: "#8899AA", marginRight: 16 }}>المكان: </span>{smsResult.place}
+                <div style={{ color: "#52BE80", fontFamily: "Cairo, sans-serif", fontSize: 13, marginBottom: 8, fontWeight: 700 }}>
+                  ✅ قرأت المبلغ: {smsResult.amount.toFixed(3)} د.ب
                 </div>
+
+                {/* إذا المكان معروف */}
+                {smsResult.placeKnown && (
+                  <div style={{ color: "#F5F0E8", fontFamily: "Cairo, sans-serif", fontSize: 13 }}>
+                    📍 المكان: <span style={{ color: "#B8860B", fontWeight: 700 }}>{smsResult.place}</span>
+                  </div>
+                )}
+
+                {/* إذا المكان مجهول — اسأل */}
+                {!smsResult.placeKnown && !placeDone && (
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ color: "#F7DC6F", fontFamily: "Cairo, sans-serif", fontSize: 13, marginBottom: 10 }}>
+                      ⚠️ ما قدرت أحدد المكان. وين كانت هذه العملية؟
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        value={manualPlace}
+                        onChange={e => setManualPlace(e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && confirmPlace()}
+                        placeholder="مثال: ستاربكس، كارفور..."
+                        style={{ ...inputStyle, flex: 1, padding: "10px 14px" }}
+                        autoFocus
+                      />
+                      <button onClick={confirmPlace} style={{ ...btnGold, padding: "0 16px", borderRadius: 12, whiteSpace: "nowrap" }}>
+                        تأكيد
+                      </button>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+                      {["تحويل بنكي", "فاتورة", "أمر دائم", "صراف آلي", "أخرى"].map(s => (
+                        <button key={s} onClick={() => { setManualPlace(s); }} style={{
+                          background: manualPlace === s ? "#B8860B33" : "#0A1628",
+                          border: `1px solid ${manualPlace === s ? "#B8860B" : "#B8860B22"}`,
+                          borderRadius: 20, padding: "5px 12px",
+                          color: manualPlace === s ? "#B8860B" : "#667788",
+                          fontSize: 12, cursor: "pointer",
+                        }}>{s}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {placeDone && (
+                  <div style={{ color: "#F5F0E8", fontFamily: "Cairo, sans-serif", fontSize: 13, marginTop: 4 }}>
+                    📍 المكان: <span style={{ color: "#B8860B", fontWeight: 700 }}>{place}</span>
+                  </div>
+                )}
               </div>
             )}
+
+            {/* فشل التحليل */}
             {smsError && (
               <div style={{ background: "#EC706322", border: "1px solid #EC706344", borderRadius: 12, padding: 16 }}>
                 <div style={{ color: "#EC7063", fontFamily: "Cairo, sans-serif", fontSize: 13 }}>
@@ -165,35 +250,33 @@ export default function AddExpense({ onAdd }: { onAdd: (e: Expense) => void }) {
           </div>
         )}
 
-        {/* Category - shown in both tabs */}
-        {(activeTab === "manual" || smsResult) && (
-          <div style={{ marginTop: 16 }}>
-            <label style={{ color: "#8899AA", fontSize: 12, display: "block", marginBottom: 8 }}>التصنيف</label>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {CATEGORIES.map(cat => (
-                <button key={cat.id} onClick={() => setCategory(cat.id)} style={{
-                  background: category === cat.id ? cat.color + "33" : "#0A1628",
-                  border: `1px solid ${category === cat.id ? cat.color : "#B8860B22"}`,
-                  borderRadius: 20, padding: "6px 14px",
-                  color: category === cat.id ? cat.color : "#667788",
-                  fontSize: 12, transition: "all 0.2s",
-                }}>
-                  {cat.icon} {cat.name}
-                </button>
-              ))}
+        {/* التصنيف والزر */}
+        {showForm && (
+          <>
+            <div style={{ marginTop: 16 }}>
+              <label style={{ color: "#8899AA", fontSize: 12, display: "block", marginBottom: 8 }}>التصنيف</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {CATEGORIES.map(cat => (
+                  <button key={cat.id} onClick={() => setCategory(cat.id)} style={{
+                    background: category === cat.id ? cat.color + "33" : "#0A1628",
+                    border: `1px solid ${category === cat.id ? cat.color : "#B8860B22"}`,
+                    borderRadius: 20, padding: "6px 14px",
+                    color: category === cat.id ? cat.color : "#667788",
+                    fontSize: 12, transition: "all 0.2s",
+                  }}>
+                    {cat.icon} {cat.name}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-
-        {/* Submit */}
-        {(activeTab === "manual" || smsResult) && (
-          <button onClick={handleSubmit} style={{
-            ...btnGold, width: "100%", padding: 14, fontSize: 15, marginTop: 20,
-            background: success ? "linear-gradient(135deg, #52BE80, #27AE60)" : "linear-gradient(135deg, #B8860B, #D4A017)",
-            transition: "all 0.3s",
-          }}>
-            {success ? "✅ تمت الإضافة!" : "➕ إضافة المصروف"}
-          </button>
+            <button onClick={handleSubmit} style={{
+              ...btnGold, width: "100%", padding: 14, fontSize: 15, marginTop: 20,
+              background: success ? "linear-gradient(135deg, #52BE80, #27AE60)" : "linear-gradient(135deg, #B8860B, #D4A017)",
+              transition: "all 0.3s",
+            }}>
+              {success ? "✅ تمت الإضافة!" : "➕ إضافة المصروف"}
+            </button>
+          </>
         )}
       </div>
     </div>
