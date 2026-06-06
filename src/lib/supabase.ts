@@ -130,3 +130,34 @@ export async function deleteSaving(id: string) {
   const { error } = await supabase.from('savings').delete().eq('id', id);
   if (error) console.error(error);
 }
+
+// ── Investments ────────────────────────────────────────────
+export interface DBInvestment {
+  id: string;
+  name: string;
+  icon: string;
+  amount: number;
+  note: string;
+  created_at?: string;
+}
+
+export async function fetchInvestments(): Promise<DBInvestment[]> {
+  const { data, error } = await supabase.from('investments').select('*').order('created_at', { ascending: true });
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+export async function insertInvestment(i: DBInvestment) {
+  const { error } = await supabase.from('investments').insert(i);
+  if (error) console.error(error);
+}
+
+export async function updateInvestment(id: string, data: Partial<DBInvestment>) {
+  const { error } = await supabase.from('investments').update(data).eq('id', id);
+  if (error) console.error(error);
+}
+
+export async function deleteInvestment(id: string) {
+  const { error } = await supabase.from('investments').delete().eq('id', id);
+  if (error) console.error(error);
+}

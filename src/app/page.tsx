@@ -12,9 +12,10 @@ import ExpensesList from "@/components/ExpensesList";
 import Analytics from "@/components/Analytics";
 import { WhereDidMySalaryGo, SalarySettings, Goals, Assistant } from "@/components/Pages";
 import Savings, { SavingsAccount } from "@/components/Savings";
-import { fetchSavings, insertSaving, updateSaving as dbUpdateSaving, deleteSaving as dbDeleteSaving } from "@/lib/supabase";
+import Investments, { Investment } from "@/components/Investments";
+import { fetchSavings, insertSaving, updateSaving as dbUpdateSaving, deleteSaving as dbDeleteSaving, fetchInvestments, insertInvestment, updateInvestment as dbUpdateInvestment, deleteInvestment as dbDeleteInvestment } from "@/lib/supabase";
 
-type PageId = "dashboard" | "add" | "expenses" | "analytics" | "where" | "goals" | "salary" | "assistant" | "savings";
+type PageId = "dashboard" | "add" | "expenses" | "analytics" | "where" | "goals" | "salary" | "assistant" | "savings" | "investments";
 
 const NAV_ITEMS: { id: PageId; label: string; icon: string }[] = [
   { id: "dashboard",  label: "لوحة التحكم", icon: "🏠" },
@@ -26,6 +27,7 @@ const NAV_ITEMS: { id: PageId; label: string; icon: string }[] = [
   { id: "salary",     label: "الراتب",       icon: "⚙️" },
   { id: "assistant",  label: "المساعد",      icon: "🤖" },
   { id: "savings",    label: "خزينتي",      icon: "🏦" },
+  { id: "investments", label: "استثماراتي",  icon: "📈" },
 ];
 
 // ── Loading Screen ─────────────────────────────────────────
@@ -63,6 +65,7 @@ export default function Home() {
   const [goals, setGoals]       = useState<Goal[]>([]);
   const [loading, setLoading]   = useState(true);
   const [savings, setSavings]     = useState<SavingsAccount[]>([]);
+  const [investments, setInvestments] = useState<Investment[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled]     = useState(false);
@@ -72,7 +75,8 @@ export default function Home() {
   useEffect(() => {
     async function loadAll() {
       setLoading(true);
-      const [exps, sal, gls, savs] = await Promise.all([fetchExpenses(), fetchSalary(), fetchGoals(), fetchSavings()]);
+      const [exps, sal, gls, savs, invs] = await Promise.all([fetchExpenses(), fetchSalary(), fetchGoals(), fetchSavings(), fetchInvestments()]);
+      setInvestments(invs.map(i => ({ id: i.id, name: i.name, icon: i.icon, amount: i.amount, note: i.note || "" })));
       setSavings(savs.map(s => ({ id: s.id, name: s.name, icon: s.icon, amount: s.amount, note: s.note || "" })));
       setExpenses(exps.map(e => ({ id: e.id, amount: e.amount, place: e.place, category: e.category, note: e.note || "", date: e.date })));
       if (sal) setSalary({ amount: sal.amount, payDay: sal.pay_day, extraIncome: sal.extra_income, extraNote: sal.extra_note });
@@ -119,7 +123,29 @@ export default function Home() {
     await upsertSalary({ amount: s.amount, pay_day: s.payDay, extra_income: s.extraIncome, extra_note: s.extraNote });
   };
 
+  // ── Investment Actions ─────────────────────────────────
+  const addInvestment = async (i: Investment) => {
+    setInvestments(prev => [...prev, i]);
+    await insertInvestment({ id: i.id, name: i.name, icon: i.icon, amount: i.amount, note: i.note });
+  };
+  const editInvestment = async (id: string, data: Partial<Investment>) => {
+    setInvestments(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
+    await dbUpdateInvestment(id, data);
+  };
+  const removeInvestment = async (id: string) => {
+    setInvestments(prev => prev.filter(i => i.id !== id));
+    await dbDeleteInvestment(id);
+  };
+
   // ── Savings Actions ────────────────────────────────────
+  const addToSavings = async (id: string, amount: number) => {
+    const acc = savings.find(a => a.id === id);
+    if (!acc) return;
+    const newAmount = acc.amount + amount;
+    setSavings(prev => prev.map(a => a.id === id ? { ...a, amount: newAmount } : a));
+    await dbUpdateSaving(id, { amount: newAmount });
+  };
+
   const addSaving = async (a: SavingsAccount) => {
     setSavings(prev => [...prev, a]);
     await insertSaving({ id: a.id, name: a.name, icon: a.icon, amount: a.amount, note: a.note });
@@ -256,7 +282,7 @@ export default function Home() {
         </div>
 
         {page === "dashboard"  && <Dashboard expenses={expenses} salary={salary} goals={goals} />}
-        {page === "add"        && <AddExpense onAdd={async (e) => { await addExpense(e); setPage("dashboard"); }} />}
+        {page === "add"        && <AddExpense onAdd={async (e) => { await addExpense(e); setPage("dashboard"); }} savingsAccounts={savings} onAddToSavings={addToSavings} />}
         {page === "expenses"   && <ExpensesList expenses={expenses} onDelete={removeExpense} onUpdate={editExpense} />}
         {page === "analytics"  && <Analytics expenses={expenses} salary={salary} />}
         {page === "where"      && <WhereDidMySalaryGo expenses={expenses} salary={salary} />}
@@ -264,6 +290,7 @@ export default function Home() {
         {page === "salary"     && <SalarySettings salary={salary} onUpdate={saveSalary} />}
         {page === "assistant"  && <Assistant expenses={expenses} salary={salary} />}
         {page === "savings"    && <Savings accounts={savings} goals={goals} onAdd={addSaving} onUpdate={editSaving} onDelete={removeSaving} />}
+        {page === "investments" && <Investments investments={investments} onAdd={addInvestment} onUpdate={editInvestment} onDelete={removeInvestment} />}
       </main>
 
       <style>{`

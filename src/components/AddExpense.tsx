@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import type { SavingsAccount } from "@/components/Savings";
 import { CATEGORIES, autoClassify, generateId, Expense } from "@/lib/data";
 import { inputStyle, btnGold } from "@/components/ui";
 
@@ -49,7 +50,7 @@ function parseBankSMS(text: string): { amount: number; place: string; placeKnown
   return { amount, place, placeKnown: false };
 }
 
-export default function AddExpense({ onAdd }: { onAdd: (e: Expense) => void }) {
+export default function AddExpense({ onAdd, savingsAccounts, onAddToSavings }: { onAdd: (e: Expense) => void; savingsAccounts?: SavingsAccount[]; onAddToSavings?: (id: string, amount: number) => void }) {
   const [amount, setAmount] = useState("");
   const [place, setPlace] = useState("");
   const [category, setCategory] = useState(15);
@@ -60,7 +61,10 @@ export default function AddExpense({ onAdd }: { onAdd: (e: Expense) => void }) {
   const [smsText, setSmsText] = useState("");
   const [smsResult, setSmsResult] = useState<{ amount: number; place: string; placeKnown: boolean } | null>(null);
   const [smsError, setSmsError] = useState(false);
-  const [activeTab, setActiveTab] = useState<"manual" | "sms">("manual");
+  const [activeTab, setActiveTab] = useState<"manual" | "sms" | "savings">("manual");
+  const [savingAccountId, setSavingAccountId] = useState("");
+  const [savingAmount, setSavingAmount] = useState("");
+  const [savingSuccess, setSavingSuccess] = useState(false);
   const [manualPlace, setManualPlace] = useState("");
   const [placeDone, setPlaceDone] = useState(false);
 
@@ -141,7 +145,61 @@ export default function AddExpense({ onAdd }: { onAdd: (e: Expense) => void }) {
         <div style={{ display: "flex", gap: 8, background: "#0A1628", borderRadius: 12, padding: 4, marginBottom: 20 }}>
           <button style={tabStyle(activeTab === "manual")} onClick={() => { setActiveTab("manual"); setSmsResult(null); setPlaceDone(false); }}>✏️ إدخال يدوي</button>
           <button style={tabStyle(activeTab === "sms")} onClick={() => setActiveTab("sms")}>📱 رسالة البنك</button>
+          <button style={tabStyle(activeTab === "savings")} onClick={() => setActiveTab("savings")}>🏦 إضافة ادخار</button>
         </div>
+
+        {/* Savings Tab */}
+        {activeTab === "savings" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {!savingsAccounts || savingsAccounts.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 32, color: "#667788", fontFamily: "Cairo, sans-serif" }}>
+                <div style={{ fontSize: 36, marginBottom: 8 }}>🏦</div>
+                <div>أضف حسابات ادخار أولاً من صفحة خزينتي</div>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label style={{ color: "#8899AA", fontSize: 12, display: "block", marginBottom: 8, fontFamily: "Cairo, sans-serif" }}>اختر حساب الادخار</label>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {savingsAccounts.map(acc => (
+                      <button key={acc.id} onClick={() => setSavingAccountId(acc.id)} style={{
+                        background: savingAccountId === acc.id ? "#52BE8022" : "#0A1628",
+                        border: `1px solid ${savingAccountId === acc.id ? "#52BE80" : "#B8860B22"}`,
+                        borderRadius: 12, padding: "12px 16px",
+                        display: "flex", alignItems: "center", gap: 12,
+                        cursor: "pointer", textAlign: "right",
+                      }}>
+                        <span style={{ fontSize: 22 }}>{acc.icon}</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ color: "#F5F0E8", fontFamily: "Cairo, sans-serif", fontSize: 14 }}>{acc.name}</div>
+                          <div style={{ color: "#667788", fontFamily: "Cairo, sans-serif", fontSize: 11 }}>{acc.amount.toFixed(3)} د.ب حالياً</div>
+                        </div>
+                        {savingAccountId === acc.id && <span style={{ color: "#52BE80" }}>✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ color: "#8899AA", fontSize: 12, display: "block", marginBottom: 6, fontFamily: "Cairo, sans-serif" }}>المبلغ المدخر (د.ب)</label>
+                  <input type="number" value={savingAmount} onChange={e => setSavingAmount(e.target.value)} placeholder="0.000" style={inputStyle} />
+                </div>
+                <button onClick={() => {
+                  if (!savingAccountId || !savingAmount) return;
+                  onAddToSavings?.(savingAccountId, parseFloat(savingAmount));
+                  setSavingAmount(""); setSavingAccountId("");
+                  setSavingSuccess(true);
+                  setTimeout(() => setSavingSuccess(false), 2000);
+                }} style={{
+                  ...btnGold, width: "100%", padding: 14, fontSize: 15,
+                  background: savingSuccess ? "linear-gradient(135deg, #52BE80, #27AE60)" : "linear-gradient(135deg, #B8860B, #D4A017)",
+                  transition: "all 0.3s",
+                }}>
+                  {savingSuccess ? "✅ تمت الإضافة للادخار!" : "🏦 إضافة للادخار"}
+                </button>
+              </>
+            )}
+          </div>
+        )}
 
         {/* SMS Tab */}
         {activeTab === "sms" && (
