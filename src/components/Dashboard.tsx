@@ -1,15 +1,32 @@
 "use client";
-import { Expense, Salary, Goal, CATEGORIES, formatDate } from "@/lib/data";
+import { useState } from "react";
+import { Expense, Salary, Goal, CATEGORIES, formatDate, generateId } from "@/lib/data";
 import { StatCard, ProgressBar, GoldDivider, Badge } from "@/components/ui";
 
+export interface ExtraIncome {
+  id: string;
+  amount: number;
+  source: string;
+  date: string;
+}
+
 export default function Dashboard({
-  expenses, salary, goals,
+  expenses, salary, goals, extraIncomes, onAddExtraIncome, onDeleteExtraIncome,
 }: {
   expenses: Expense[]; salary: Salary; goals: Goal[];
+  extraIncomes: ExtraIncome[];
+  onAddExtraIncome: (i: ExtraIncome) => void;
+  onDeleteExtraIncome: (id: string) => void;
 }) {
+  const [showIncomeModal, setShowIncomeModal] = useState(false);
+  const [incomeAmount, setIncomeAmount] = useState("");
+  const [incomeSource, setIncomeSource] = useState("");
   const today = new Date();
   const totalSpent = expenses.reduce((s, e) => s + e.amount, 0);
-  const totalIncome = salary.amount + salary.extraIncome;
+  const thisMonthExtra = extraIncomes
+    .filter(i => { const d = new Date(i.date); return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear(); })
+    .reduce((s, i) => s + i.amount, 0);
+  const totalIncome = salary.amount + salary.extraIncome + thisMonthExtra;
   const remaining = totalIncome - totalSpent;
   const spentPct = Math.min(100, (totalSpent / Math.max(1, totalIncome)) * 100);
 
@@ -31,6 +48,61 @@ export default function Dashboard({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* Quick Add Extra Income Button */}
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <button onClick={() => setShowIncomeModal(true)} style={{
+          background: "linear-gradient(135deg, #52BE8022, #27AE6011)",
+          border: "1px solid #52BE8044",
+          borderRadius: 12, padding: "10px 18px",
+          color: "#52BE80", fontFamily: "Cairo, sans-serif",
+          fontSize: 13, cursor: "pointer",
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          💵 + إضافة دخل استثنائي
+        </button>
+      </div>
+
+      {/* Extra Income Modal */}
+      {showIncomeModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 999, background: "#00000088", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div style={{ background: "linear-gradient(135deg, #0F1C2E, #162236)", border: "1px solid #52BE8044", borderRadius: 20, padding: 28, maxWidth: 380, width: "100%" }}>
+            <h3 style={{ color: "#52BE80", fontFamily: "Cairo, sans-serif", fontSize: 16, margin: "0 0 20px" }}>💵 إضافة دخل استثنائي</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label style={{ color: "#8899AA", fontSize: 12, display: "block", marginBottom: 6, fontFamily: "Cairo, sans-serif" }}>المبلغ (د.ب)</label>
+                <input type="number" value={incomeAmount} onChange={e => setIncomeAmount(e.target.value)} placeholder="0.000"
+                  style={{ background: "#0A1628", border: "1px solid #52BE8033", borderRadius: 12, padding: "12px 16px", color: "#F5F0E8", fontFamily: "Cairo, sans-serif", fontSize: 14, width: "100%", outline: "none", boxSizing: "border-box" as any }} />
+              </div>
+              <div>
+                <label style={{ color: "#8899AA", fontSize: 12, display: "block", marginBottom: 6, fontFamily: "Cairo, sans-serif" }}>المصدر</label>
+                <input value={incomeSource} onChange={e => setIncomeSource(e.target.value)} placeholder="عيدية، مكافأة، عمل حر..."
+                  style={{ background: "#0A1628", border: "1px solid #52BE8033", borderRadius: 12, padding: "12px 16px", color: "#F5F0E8", fontFamily: "Cairo, sans-serif", fontSize: 14, width: "100%", outline: "none", boxSizing: "border-box" as any }} />
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {["عيدية", "مكافأة", "عمل حر", "بيع", "هدية"].map(s => (
+                  <button key={s} onClick={() => setIncomeSource(s)} style={{
+                    background: incomeSource === s ? "#52BE8033" : "#0A1628",
+                    border: `1px solid ${incomeSource === s ? "#52BE80" : "#52BE8022"}`,
+                    borderRadius: 20, padding: "5px 12px", color: incomeSource === s ? "#52BE80" : "#667788",
+                    fontFamily: "Cairo, sans-serif", fontSize: 12, cursor: "pointer",
+                  }}>{s}</button>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+                <button onClick={() => setShowIncomeModal(false)} style={{ flex: 1, background: "#162236", border: "1px solid #445566", borderRadius: 12, padding: 12, color: "#8899AA", fontFamily: "Cairo, sans-serif", cursor: "pointer" }}>إلغاء</button>
+                <button onClick={() => {
+                  if (!incomeAmount || !incomeSource) return;
+                  onAddExtraIncome({ id: generateId(), amount: parseFloat(incomeAmount), source: incomeSource, date: new Date().toISOString() });
+                  setIncomeAmount(""); setIncomeSource(""); setShowIncomeModal(false);
+                }} style={{ flex: 1, background: "linear-gradient(135deg, #52BE80, #27AE60)", border: "none", borderRadius: 12, padding: 12, color: "#0A1628", fontFamily: "Cairo, sans-serif", fontWeight: 700, cursor: "pointer" }}>
+                  ✅ إضافة
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {alerts.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {alerts.map((a, i) => (
@@ -112,6 +184,31 @@ export default function Dashboard({
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Extra Incomes This Month */}
+      {extraIncomes.filter(i => { const d = new Date(i.date); return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear(); }).length > 0 && (
+        <div style={{ background: "linear-gradient(135deg, #0F2E1A, #0F1C2E)", border: "1px solid #52BE8033", borderRadius: 16, padding: 24 }}>
+          <h3 style={{ color: "#52BE80", fontFamily: "Cairo, sans-serif", fontSize: 15, margin: "0 0 16px" }}>💵 الدخل الإضافي هذا الشهر</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {extraIncomes.filter(i => { const d = new Date(i.date); return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear(); }).map(inc => (
+              <div key={inc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #52BE8011" }}>
+                <div>
+                  <div style={{ color: "#F5F0E8", fontFamily: "Cairo, sans-serif", fontSize: 14 }}>{inc.source}</div>
+                  <div style={{ color: "#667788", fontFamily: "Cairo, sans-serif", fontSize: 11 }}>{formatDate(inc.date)}</div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ color: "#52BE80", fontWeight: 700, fontFamily: "Cairo, sans-serif" }}>+{inc.amount.toFixed(3)} د.ب</span>
+                  <button onClick={() => onDeleteExtraIncome(inc.id)} style={{ background: "#EC706322", border: "none", borderRadius: 6, padding: "4px 8px", color: "#EC7063", cursor: "pointer", fontSize: 12 }}>🗑️</button>
+                </div>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, fontFamily: "Cairo, sans-serif" }}>
+              <span style={{ color: "#8899AA", fontSize: 13 }}>الإجمالي:</span>
+              <span style={{ color: "#52BE80", fontWeight: 700, fontSize: 14 }}>+{thisMonthExtra.toFixed(3)} د.ب</span>
+            </div>
           </div>
         </div>
       )}

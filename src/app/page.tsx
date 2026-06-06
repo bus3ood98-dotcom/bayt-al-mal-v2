@@ -6,14 +6,14 @@ import {
   fetchSalary, upsertSalary,
   fetchGoals, insertGoal, updateGoal as dbUpdateGoal, deleteGoal as dbDeleteGoal,
 } from "@/lib/supabase";
-import Dashboard from "@/components/Dashboard";
+import Dashboard, { ExtraIncome } from "@/components/Dashboard";
 import AddExpense from "@/components/AddExpense";
 import ExpensesList from "@/components/ExpensesList";
 import Analytics from "@/components/Analytics";
 import { WhereDidMySalaryGo, SalarySettings, Goals, Assistant } from "@/components/Pages";
 import Savings, { SavingsAccount } from "@/components/Savings";
 import Investments, { Investment } from "@/components/Investments";
-import { fetchSavings, insertSaving, updateSaving as dbUpdateSaving, deleteSaving as dbDeleteSaving, fetchInvestments, insertInvestment, updateInvestment as dbUpdateInvestment, deleteInvestment as dbDeleteInvestment } from "@/lib/supabase";
+import { fetchSavings, insertSaving, updateSaving as dbUpdateSaving, deleteSaving as dbDeleteSaving, fetchInvestments, insertInvestment, updateInvestment as dbUpdateInvestment, deleteInvestment as dbDeleteInvestment, fetchExtraIncome, insertExtraIncome, deleteExtraIncome as dbDeleteExtraIncome } from "@/lib/supabase";
 
 type PageId = "dashboard" | "add" | "expenses" | "analytics" | "where" | "goals" | "salary" | "assistant" | "savings" | "investments";
 
@@ -66,6 +66,7 @@ export default function Home() {
   const [loading, setLoading]   = useState(true);
   const [savings, setSavings]     = useState<SavingsAccount[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
+  const [extraIncomes, setExtraIncomes] = useState<ExtraIncome[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled]     = useState(false);
@@ -75,7 +76,8 @@ export default function Home() {
   useEffect(() => {
     async function loadAll() {
       setLoading(true);
-      const [exps, sal, gls, savs, invs] = await Promise.all([fetchExpenses(), fetchSalary(), fetchGoals(), fetchSavings(), fetchInvestments()]);
+      const [exps, sal, gls, savs, invs, extras] = await Promise.all([fetchExpenses(), fetchSalary(), fetchGoals(), fetchSavings(), fetchInvestments(), fetchExtraIncome()]);
+      setExtraIncomes(extras.map(e => ({ id: e.id, amount: e.amount, source: e.source, date: e.date })));
       setInvestments(invs.map(i => ({ id: i.id, name: i.name, icon: i.icon, amount: i.amount, note: i.note || "" })));
       setSavings(savs.map(s => ({ id: s.id, name: s.name, icon: s.icon, amount: s.amount, note: s.note || "" })));
       setExpenses(exps.map(e => ({ id: e.id, amount: e.amount, place: e.place, category: e.category, note: e.note || "", date: e.date })));
@@ -121,6 +123,16 @@ export default function Home() {
   const saveSalary = async (s: Salary) => {
     setSalary(s);
     await upsertSalary({ amount: s.amount, pay_day: s.payDay, extra_income: s.extraIncome, extra_note: s.extraNote });
+  };
+
+  // ── Extra Income Actions ───────────────────────────────
+  const addExtraIncome = async (i: ExtraIncome) => {
+    setExtraIncomes(prev => [i, ...prev]);
+    await insertExtraIncome({ id: i.id, amount: i.amount, source: i.source, date: i.date });
+  };
+  const removeExtraIncome = async (id: string) => {
+    setExtraIncomes(prev => prev.filter(i => i.id !== id));
+    await dbDeleteExtraIncome(id);
   };
 
   // ── Investment Actions ─────────────────────────────────
@@ -293,7 +305,7 @@ export default function Home() {
           <div style={{ height: 2, width: 40, background: "linear-gradient(90deg, #B8860B, transparent)", borderRadius: 1 }} />
         </div>
 
-        {page === "dashboard"  && <Dashboard expenses={expenses} salary={salary} goals={goals} />}
+        {page === "dashboard"  && <Dashboard expenses={expenses} salary={salary} goals={goals} extraIncomes={extraIncomes} onAddExtraIncome={addExtraIncome} onDeleteExtraIncome={removeExtraIncome} />}
         {page === "add"        && <AddExpense onAdd={async (e) => { await addExpense(e); setPage("dashboard"); }} savingsAccounts={savings} onAddToSavings={addToSavings} />}
         {page === "expenses"   && <ExpensesList expenses={expenses} onDelete={removeExpense} onUpdate={editExpense} />}
         {page === "analytics"  && <Analytics expenses={expenses} salary={salary} />}

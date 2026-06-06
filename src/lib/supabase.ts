@@ -171,3 +171,30 @@ export async function deleteInvestment(id: string) {
   const { error } = await supabase.from('investments').delete().eq('id', id);
   if (error) console.error(error);
 }
+
+// ── Extra Income ───────────────────────────────────────────
+export interface DBExtraIncome {
+  id: string;
+  amount: number;
+  source: string;
+  date: string;
+  created_at?: string;
+}
+
+export async function fetchExtraIncome(): Promise<DBExtraIncome[]> {
+  try {
+    const { data, error } = await supabase.from('extra_income').select('*').order('date', { ascending: false });
+    if (error) { console.error(error); return []; }
+    return data || [];
+  } catch (e) { return []; }
+}
+
+export async function insertExtraIncome(i: DBExtraIncome) {
+  const { error } = await supabase.from('extra_income').insert(i);
+  if (error) console.error(error);
+}
+
+export async function deleteExtraIncome(id: string) {
+  const { error } = await supabase.from('extra_income').delete().eq('id', id);
+  if (error) console.error(error);
+}
