@@ -111,9 +111,14 @@ export interface DBSavingsAccount {
 }
 
 export async function fetchSavings(): Promise<DBSavingsAccount[]> {
-  const { data, error } = await supabase.from('savings').select('*').order('created_at', { ascending: true });
-  if (error) { console.error(error); return []; }
-  return data || [];
+  try {
+    const { data, error } = await supabase.from('savings').select('*').order('created_at', { ascending: true });
+    if (error) { console.error('fetchSavings error:', error); return []; }
+    return data || [];
+  } catch (e) {
+    console.error('fetchSavings exception:', e);
+    return [];
+  }
 }
 
 export async function insertSaving(s: DBSavingsAccount) {
@@ -142,9 +147,14 @@ export interface DBInvestment {
 }
 
 export async function fetchInvestments(): Promise<DBInvestment[]> {
-  const { data, error } = await supabase.from('investments').select('*').order('created_at', { ascending: true });
-  if (error) { console.error(error); return []; }
-  return data || [];
+  try {
+    const { data, error } = await supabase.from('investments').select('*').order('created_at', { ascending: true });
+    if (error) { console.error('fetchInvestments error:', error); return []; }
+    return data || [];
+  } catch (e) {
+    console.error('fetchInvestments exception:', e);
+    return [];
+  }
 }
 
 export async function insertInvestment(i: DBInvestment) {

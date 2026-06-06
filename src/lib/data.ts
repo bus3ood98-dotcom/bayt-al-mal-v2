@@ -14,6 +14,8 @@ export const CATEGORIES = [
   { id: 13, name: "تعليم",      nameEn: "Education",      icon: "📚",  color: "#F8C471" },
   { id: 14, name: "صحة",        nameEn: "Health",         icon: "🏥",  color: "#EC7063" },
   { id: 15, name: "أخرى",       nameEn: "Other",          icon: "📌",  color: "#AAB7B8" },
+  { id: 16, name: "ادخار",      nameEn: "Savings",        icon: "💰",  color: "#52BE80" },
+  { id: 17, name: "استثمار",   nameEn: "Investment",     icon: "📈",  color: "#5DADE2" },
 ];
 
 export const GOAL_ICONS = ["🕋","🕌","🚗","💍","💼","🏡","📱","✈️","🎓","💰","🎯","🏖️"];
@@ -34,6 +36,8 @@ export const autoClassify = (text: string): number => {
   if (/سفر|فندق|طيران|hotel|flight|travel/.test(t)) return 12;
   if (/دراسة|مدرسة|جامعة|school|university/.test(t)) return 13;
   if (/صيدلية|دكتور|مستشفى|pharmacy|doctor/.test(t)) return 14;
+  if (/ادخار|saving/i.test(t)) return 16;
+  if (/استثمار|invest/i.test(t)) return 17;
   return 15;
 };
 

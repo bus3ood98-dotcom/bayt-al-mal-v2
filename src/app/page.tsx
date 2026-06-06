@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Expense, Salary, Goal, DEMO_SALARY } from "@/lib/data";
+import { Expense, Salary, Goal, DEMO_SALARY, generateId } from "@/lib/data";
 import {
   fetchExpenses, insertExpense, updateExpense as dbUpdateExpense, deleteExpense as dbDeleteExpense,
   fetchSalary, upsertSalary,
@@ -141,9 +141,21 @@ export default function Home() {
   const addToSavings = async (id: string, amount: number) => {
     const acc = savings.find(a => a.id === id);
     if (!acc) return;
+    // Update savings account
     const newAmount = acc.amount + amount;
     setSavings(prev => prev.map(a => a.id === id ? { ...a, amount: newAmount } : a));
     await dbUpdateSaving(id, { amount: newAmount });
+    // Also record as expense so it deducts from salary
+    const expenseEntry: Expense = {
+      id: generateId(),
+      amount,
+      place: `ادخار - ${acc.name}`,
+      category: 16,
+      note: "تحويل للادخار",
+      date: new Date().toISOString(),
+    };
+    setExpenses(prev => [expenseEntry, ...prev]);
+    await insertExpense({ id: expenseEntry.id, amount: expenseEntry.amount, place: expenseEntry.place, category: expenseEntry.category, note: expenseEntry.note, date: expenseEntry.date });
   };
 
   const addSaving = async (a: SavingsAccount) => {
