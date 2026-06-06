@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --gold: #B8860B;
+  --gold-light: #D4A017;
+  --navy: #070E1A;
+  --navy-2: #0A1628;
+  --navy-3: #0F1C2E;
+  --navy-4: #162236;
+  --beige: #F5F0E8;
+  --muted: #8899AA;
+  --dim: #667788;
+  --dark: #445566;
+}
+
+html {
+  direction: rtl;
+}
+
+body {
+  background: var(--navy);
+  color: var(--beige);
+  font-family: 'Cairo', sans-serif;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--navy-2); }
+::-webkit-scrollbar-thumb { background: #B8860B44; border-radius: 2px; }
+
+input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
+input[type=date]::-webkit-calendar-picker-indicator {
+  filter: invert(0.5) sepia(1) saturate(2) hue-rotate(5deg);
+}
+
+input, select, textarea {
+  background: var(--navy-2);
+  border: 1px solid #B8860B33;
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: var(--beige);
+  font-family: 'Cairo', sans-serif;
+  font-size: 14px;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.2s;
+}
+
+input:focus, select:focus {
+  border-color: #B8860B88;
+}
+
+button {
+  cursor: pointer;
+  font-family: 'Cairo', sans-serif;
+  transition: all 0.2s;
+}
+
+button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
