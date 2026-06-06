@@ -11,8 +11,10 @@ import AddExpense from "@/components/AddExpense";
 import ExpensesList from "@/components/ExpensesList";
 import Analytics from "@/components/Analytics";
 import { WhereDidMySalaryGo, SalarySettings, Goals, Assistant } from "@/components/Pages";
+import Savings, { SavingsAccount } from "@/components/Savings";
+import { fetchSavings, insertSaving, updateSaving as dbUpdateSaving, deleteSaving as dbDeleteSaving } from "@/lib/supabase";
 
-type PageId = "dashboard" | "add" | "expenses" | "analytics" | "where" | "goals" | "salary" | "assistant";
+type PageId = "dashboard" | "add" | "expenses" | "analytics" | "where" | "goals" | "salary" | "assistant" | "savings";
 
 const NAV_ITEMS: { id: PageId; label: string; icon: string }[] = [
   { id: "dashboard",  label: "لوحة التحكم", icon: "🏠" },
@@ -23,6 +25,7 @@ const NAV_ITEMS: { id: PageId; label: string; icon: string }[] = [
   { id: "goals",      label: "الأهداف",      icon: "🎯" },
   { id: "salary",     label: "الراتب",       icon: "⚙️" },
   { id: "assistant",  label: "المساعد",      icon: "🤖" },
+  { id: "savings",    label: "خزينتي",      icon: "🏦" },
 ];
 
 // ── Loading Screen ─────────────────────────────────────────
@@ -59,6 +62,7 @@ export default function Home() {
   const [salary, setSalary]     = useState<Salary>(DEMO_SALARY);
   const [goals, setGoals]       = useState<Goal[]>([]);
   const [loading, setLoading]   = useState(true);
+  const [savings, setSavings]     = useState<SavingsAccount[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled]     = useState(false);
@@ -68,7 +72,8 @@ export default function Home() {
   useEffect(() => {
     async function loadAll() {
       setLoading(true);
-      const [exps, sal, gls] = await Promise.all([fetchExpenses(), fetchSalary(), fetchGoals()]);
+      const [exps, sal, gls, savs] = await Promise.all([fetchExpenses(), fetchSalary(), fetchGoals(), fetchSavings()]);
+      setSavings(savs.map(s => ({ id: s.id, name: s.name, icon: s.icon, amount: s.amount, note: s.note || "" })));
       setExpenses(exps.map(e => ({ id: e.id, amount: e.amount, place: e.place, category: e.category, note: e.note || "", date: e.date })));
       if (sal) setSalary({ amount: sal.amount, payDay: sal.pay_day, extraIncome: sal.extra_income, extraNote: sal.extra_note });
       setGoals(gls.map(g => ({ id: g.id, title: g.title, icon: g.icon, targetAmount: g.target_amount, currentAmount: g.current_amount, targetDate: g.target_date })));
@@ -112,6 +117,20 @@ export default function Home() {
   const saveSalary = async (s: Salary) => {
     setSalary(s);
     await upsertSalary({ amount: s.amount, pay_day: s.payDay, extra_income: s.extraIncome, extra_note: s.extraNote });
+  };
+
+  // ── Savings Actions ────────────────────────────────────
+  const addSaving = async (a: SavingsAccount) => {
+    setSavings(prev => [...prev, a]);
+    await insertSaving({ id: a.id, name: a.name, icon: a.icon, amount: a.amount, note: a.note });
+  };
+  const editSaving = async (id: string, data: Partial<SavingsAccount>) => {
+    setSavings(prev => prev.map(a => a.id === id ? { ...a, ...data } : a));
+    await dbUpdateSaving(id, data);
+  };
+  const removeSaving = async (id: string) => {
+    setSavings(prev => prev.filter(a => a.id !== id));
+    await dbDeleteSaving(id);
   };
 
   // ── Goal Actions ───────────────────────────────────────
@@ -244,6 +263,7 @@ export default function Home() {
         {page === "goals"      && <Goals goals={goals} onAdd={addGoal} onUpdate={editGoal} onDelete={removeGoal} />}
         {page === "salary"     && <SalarySettings salary={salary} onUpdate={saveSalary} />}
         {page === "assistant"  && <Assistant expenses={expenses} salary={salary} />}
+        {page === "savings"    && <Savings accounts={savings} goals={goals} onAdd={addSaving} onUpdate={editSaving} onDelete={removeSaving} />}
       </main>
 
       <style>{`

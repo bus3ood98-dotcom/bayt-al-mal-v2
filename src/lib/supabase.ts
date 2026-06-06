@@ -99,3 +99,34 @@ export async function deleteGoal(id: string) {
   const { error } = await supabase.from('goals').delete().eq('id', id);
   if (error) console.error(error);
 }
+
+// ── Savings Accounts ───────────────────────────────────────
+export interface DBSavingsAccount {
+  id: string;
+  name: string;
+  icon: string;
+  amount: number;
+  note: string;
+  created_at?: string;
+}
+
+export async function fetchSavings(): Promise<DBSavingsAccount[]> {
+  const { data, error } = await supabase.from('savings').select('*').order('created_at', { ascending: true });
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+export async function insertSaving(s: DBSavingsAccount) {
+  const { error } = await supabase.from('savings').insert(s);
+  if (error) console.error(error);
+}
+
+export async function updateSaving(id: string, data: Partial<DBSavingsAccount>) {
+  const { error } = await supabase.from('savings').update(data).eq('id', id);
+  if (error) console.error(error);
+}
+
+export async function deleteSaving(id: string) {
+  const { error } = await supabase.from('savings').delete().eq('id', id);
+  if (error) console.error(error);
+}
