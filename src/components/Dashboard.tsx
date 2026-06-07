@@ -121,7 +121,12 @@ export default function Dashboard({
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
         <StatCard label="الرصيد المتبقي" value={`${remaining.toFixed(3)} د.ب`} sub="بعد المصروفات" accent={remaining < 100 ? "#EC7063" : "#52BE80"} icon="💰" />
-        <StatCard label="الراتب الشهري" value={`${salary.amount} د.ب`} sub={salary.extraIncome > 0 ? `+ ${salary.extraIncome} إضافي` : `يوم ${salary.payDay} كل شهر`} icon="📅" />
+(() => {
+          const byCat = expenses.reduce((acc: Record<number, number>, e) => { acc[e.category] = (acc[e.category] || 0) + e.amount; return acc; }, {});
+          const topEntry = Object.entries(byCat).sort((a, b) => Number(b[1]) - Number(a[1]))[0];
+          const topCat = topEntry ? CATEGORIES.find(c => c.id === Number(topEntry[0])) : null;
+          return <StatCard label="أكثر تصنيف صرفاً" value={topCat ? `${topCat.icon} ${topCat.name}` : "—"} sub={topEntry ? `${Number(topEntry[1]).toFixed(3)} د.ب` : ""} accent={topCat?.color} icon="🏆" />;
+        })()
         <StatCard label="إجمالي المصروفات" value={`${totalSpent.toFixed(3)} د.ب`} sub={`${spentPct.toFixed(0)}٪ من الراتب`} accent="#E8A87C" icon="📊" />
         <StatCard label="أيام على الراتب" value={`${daysUntilPay} يوم`} sub="حتى الراتب القادم" accent="#85C1E9" icon="⏳" />
         <StatCard label="متوسط يومي" value={`${avgDaily.toFixed(3)} د.ب`} sub="هذا الشهر" icon="📈" />

@@ -71,6 +71,7 @@ export default function Home() {
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled]     = useState(false);
   const [showBanner, setShowBanner]       = useState(false);
+  const [showWeeklySummary, setShowWeeklySummary] = useState(false);
 
   // ── Load data from Supabase ────────────────────────────
   useEffect(() => {
@@ -208,6 +209,58 @@ export default function Home() {
   return (
     <div style={{ minHeight: "100vh", background: "#070E1A", direction: "rtl" }}>
 
+      {/* Weekly Summary Modal */}
+      {showWeeklySummary && (() => {
+        const now = new Date();
+        const weekAgo = new Date(now.getTime() - 7 * 86400000);
+        const twoWeeksAgo = new Date(now.getTime() - 14 * 86400000);
+        const thisWeek = expenses.filter(e => new Date(e.date) >= weekAgo);
+        const lastWeek = expenses.filter(e => new Date(e.date) >= twoWeeksAgo && new Date(e.date) < weekAgo);
+        const thisTotal = thisWeek.reduce((s, e) => s + e.amount, 0);
+        const lastTotal = lastWeek.reduce((s, e) => s + e.amount, 0);
+        const diff = thisTotal - lastTotal;
+        const topCat = (() => {
+          const map: Record<number, number> = {};
+          thisWeek.forEach(e => { map[e.category] = (map[e.category] || 0) + e.amount; });
+          const top = Object.entries(map).sort((a, b) => Number(b[1]) - Number(a[1]))[0];
+          if (!top) return null;
+          const { CATEGORIES } = require ? null : null;
+          return top;
+        })();
+        return (
+          <div style={{ position: "fixed", inset: 0, zIndex: 999, background: "#00000088", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+            <div style={{ background: "linear-gradient(135deg, #0F1C2E, #162236)", border: "1px solid #B8860B44", borderRadius: 20, padding: 28, maxWidth: 380, width: "100%" }}>
+              <div style={{ textAlign: "center", marginBottom: 20 }}>
+                <div style={{ fontSize: 36, marginBottom: 8 }}>📊</div>
+                <h3 style={{ color: "#B8860B", fontFamily: "Cairo, sans-serif", fontSize: 17, margin: 0 }}>ملخص الأسبوع</h3>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ background: "#0A1628", borderRadius: 12, padding: 16 }}>
+                  <div style={{ color: "#8899AA", fontFamily: "Cairo, sans-serif", fontSize: 12, marginBottom: 4 }}>إجمالي هذا الأسبوع</div>
+                  <div style={{ color: "#E8A87C", fontFamily: "Cairo, sans-serif", fontSize: 22, fontWeight: 700 }}>{thisTotal.toFixed(3)} د.ب</div>
+                </div>
+                <div style={{ background: "#0A1628", borderRadius: 12, padding: 16 }}>
+                  <div style={{ color: "#8899AA", fontFamily: "Cairo, sans-serif", fontSize: 12, marginBottom: 4 }}>مقارنة بالأسبوع الماضي</div>
+                  <div style={{ color: diff > 0 ? "#EC7063" : "#52BE80", fontFamily: "Cairo, sans-serif", fontSize: 18, fontWeight: 700 }}>
+                    {diff > 0 ? "▲" : "▼"} {Math.abs(diff).toFixed(3)} د.ب {diff > 0 ? "أكثر" : "أقل"}
+                  </div>
+                </div>
+                <div style={{ background: "#0A1628", borderRadius: 12, padding: 16 }}>
+                  <div style={{ color: "#8899AA", fontFamily: "Cairo, sans-serif", fontSize: 12, marginBottom: 4 }}>عدد العمليات</div>
+                  <div style={{ color: "#F5F0E8", fontFamily: "Cairo, sans-serif", fontSize: 18, fontWeight: 700 }}>{thisWeek.length} عملية</div>
+                </div>
+              </div>
+              <button onClick={() => setShowWeeklySummary(false)} style={{
+                width: "100%", marginTop: 20,
+                background: "linear-gradient(135deg, #B8860B, #D4A017)",
+                border: "none", borderRadius: 12, padding: 14,
+                color: "#0A1628", fontFamily: "Cairo, sans-serif", fontWeight: 700, fontSize: 14, cursor: "pointer",
+              }}>حسناً ✓</button>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Install Banner */}
       {showBanner && !isInstalled && (
         <div style={{
@@ -241,6 +294,17 @@ export default function Home() {
             </div>
           </div>
         </div>
+        <div style={{ padding: "10px 12px 0" }}>
+          <button onClick={() => setPage("add")} style={{
+            width: "100%", background: "linear-gradient(135deg, #B8860B, #D4A017)",
+            border: "none", borderRadius: 10, padding: "10px 14px",
+            color: "#0A1628", fontFamily: "Cairo, sans-serif", fontWeight: 700,
+            fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center",
+            gap: 8, justifyContent: "center",
+          }}>
+            ➕ إضافة مصروف
+          </button>
+        </div>
         <nav style={{ flex: 1, padding: "12px", display: "flex", flexDirection: "column", gap: 4 }}>
           {NAV_ITEMS.map(item => (
             <button key={item.id} onClick={() => setPage(item.id)} style={{
@@ -271,6 +335,7 @@ export default function Home() {
       {/* Mobile Header */}
       <header style={{ position: "fixed", top: 0, left: 0, right: 0, height: 60, background: "#0A1628", borderBottom: "1px solid #B8860B22", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", zIndex: 200 }} className="mobile-header">
         <button onClick={() => setMenuOpen(!menuOpen)} style={{ background: "none", border: "none", color: "#B8860B", fontSize: 22 }}>{menuOpen ? "✕" : "☰"}</button>
+        <button onClick={() => { setPage("add"); setMenuOpen(false); }} style={{ background: "linear-gradient(135deg, #B8860B, #D4A017)", border: "none", borderRadius: 10, width: 34, height: 34, color: "#0A1628", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>+</button>
         <span style={{ color: "#B8860B", fontWeight: 700, fontSize: 15 }}>🏛️ بيت المال</span>
         {!isInstalled && installPrompt
           ? <button onClick={handleInstall} style={{ background: "none", border: "none", color: "#B8860B", fontSize: 20, cursor: "pointer" }}>📲</button>
@@ -316,6 +381,37 @@ export default function Home() {
         {page === "savings"    && <Savings accounts={savings} goals={goals} onAdd={addSaving} onUpdate={editSaving} onDelete={removeSaving} />}
         {page === "investments" && <Investments investments={investments} onAdd={addInvestment} onUpdate={editInvestment} onDelete={removeInvestment} />}
       </main>
+
+      {/* Floating Add Button */}
+      {page !== "add" && (
+        <button
+          onClick={() => setPage("add")}
+          style={{
+            position: "fixed",
+            bottom: 28,
+            left: 28,
+            width: 58,
+            height: 58,
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #B8860B, #D4A017)",
+            border: "none",
+            boxShadow: "0 4px 20px #B8860B66",
+            color: "#0A1628",
+            fontSize: 28,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 300,
+            transition: "transform 0.2s, box-shadow 0.2s",
+          }}
+          onMouseEnter={e => { (e.target as HTMLElement).style.transform = "scale(1.1)"; }}
+          onMouseLeave={e => { (e.target as HTMLElement).style.transform = "scale(1)"; }}
+          title="إضافة مصروف"
+        >
+          ➕
+        </button>
+      )}
 
       <style>{`
         @media (max-width: 768px) {

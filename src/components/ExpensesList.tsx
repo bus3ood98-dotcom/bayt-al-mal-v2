@@ -42,6 +42,20 @@ function ConfirmModal({ place, onConfirm, onCancel }: { place: string; onConfirm
   );
 }
 
+const exportToCSV = (expenses: Expense[]) => {
+  const headers = ["التاريخ", "المكان", "المبلغ", "التصنيف", "ملاحظة"];
+  const rows = expenses.map(e => {
+    const cat = CATEGORIES.find(c => c.id === e.category)?.name || "أخرى";
+    return [new Date(e.date).toLocaleDateString("ar-BH"), e.place, e.amount.toFixed(3), cat, e.note || ""];
+  });
+  const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `بيت-المال-${new Date().toLocaleDateString("ar-BH")}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+};
+
 export default function ExpensesList({
   expenses, onDelete, onUpdate,
 }: {
@@ -87,9 +101,15 @@ export default function ExpensesList({
               <option value={0}>كل التصنيفات</option>
               {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
             </select>
-            <div style={{ color: "#B8860B", fontWeight: 600, whiteSpace: "nowrap", fontSize: 14 }}>
+  <div style={{ color: "#B8860B", fontWeight: 600, whiteSpace: "nowrap", fontSize: 14 }}>
               {filtered.length} عملية · {total.toFixed(3)} د.ب
             </div>
+            <button onClick={() => exportToCSV(filtered)} style={{
+              background: "#B8860B11", border: "1px solid #B8860B33",
+              borderRadius: 10, padding: "8px 14px", color: "#B8860B",
+              fontFamily: "Cairo, sans-serif", fontSize: 12, cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}>📥 تصدير</button>
           </div>
         </div>
 
