@@ -10,8 +10,6 @@ export interface ExtraIncome {
   date: string;
 }
 
-
-// ── Top Category Card ──────────────────────────────────────
 function TopCatCard({ expenses }: { expenses: Expense[] }) {
   const byCat = expenses.reduce((acc: Record<number, number>, e) => {
     acc[e.category] = (acc[e.category] || 0) + e.amount;
@@ -23,7 +21,7 @@ function TopCatCard({ expenses }: { expenses: Expense[] }) {
     <StatCard
       label="أكثر تصنيف صرفاً"
       value={topCat ? `${topCat.icon} ${topCat.name}` : "—"}
-      sub={topEntry ? `${Number(topEntry[1]).toFixed(3)} د.ب` : ""}
+      sub={topEntry ? `${Number(topEntry[1]).toFixed(3)} د.ب` : "لا توجد مصروفات"}
       accent={topCat?.color}
       icon="🏆"
     />
@@ -33,7 +31,9 @@ function TopCatCard({ expenses }: { expenses: Expense[] }) {
 export default function Dashboard({
   expenses, salary, goals, extraIncomes, onAddExtraIncome, onDeleteExtraIncome,
 }: {
-  expenses: Expense[]; salary: Salary; goals: Goal[];
+  expenses: Expense[];
+  salary: Salary;
+  goals: Goal[];
   extraIncomes: ExtraIncome[];
   onAddExtraIncome: (i: ExtraIncome) => void;
   onDeleteExtraIncome: (id: string) => void;
@@ -41,11 +41,18 @@ export default function Dashboard({
   const [showIncomeModal, setShowIncomeModal] = useState(false);
   const [incomeAmount, setIncomeAmount] = useState("");
   const [incomeSource, setIncomeSource] = useState("");
+
   const today = new Date();
+
   const totalSpent = expenses.reduce((s, e) => s + e.amount, 0);
+
   const thisMonthExtra = extraIncomes
-    .filter(i => { const d = new Date(i.date); return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear(); })
+    .filter(i => {
+      const d = new Date(i.date);
+      return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+    })
     .reduce((s, i) => s + i.amount, 0);
+
   const totalIncome = salary.amount + salary.extraIncome + thisMonthExtra;
   const remaining = totalIncome - totalSpent;
   const spentPct = Math.min(100, (totalSpent / Math.max(1, totalIncome)) * 100);
@@ -66,21 +73,21 @@ export default function Dashboard({
 
   const recentExp = [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
 
+  const inputStyle: React.CSSProperties = {
+    background: "#0A1628",
+    border: "1px solid #52BE8033",
+    borderRadius: 12,
+    padding: "12px 16px",
+    color: "#F5F0E8",
+    fontFamily: "Cairo, sans-serif",
+    fontSize: 14,
+    width: "100%",
+    outline: "none",
+    boxSizing: "border-box",
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      {/* Quick Add Extra Income Button */}
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <button onClick={() => setShowIncomeModal(true)} style={{
-          background: "linear-gradient(135deg, #52BE8022, #27AE6011)",
-          border: "1px solid #52BE8044",
-          borderRadius: 12, padding: "10px 18px",
-          color: "#52BE80", fontFamily: "Cairo, sans-serif",
-          fontSize: 13, cursor: "pointer",
-          display: "flex", alignItems: "center", gap: 8,
-        }}>
-          💵 + إضافة دخل استثنائي
-        </button>
-      </div>
 
       {/* Extra Income Modal */}
       {showIncomeModal && (
@@ -90,26 +97,25 @@ export default function Dashboard({
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
                 <label style={{ color: "#8899AA", fontSize: 12, display: "block", marginBottom: 6, fontFamily: "Cairo, sans-serif" }}>المبلغ (د.ب)</label>
-                <input type="number" value={incomeAmount} onChange={e => setIncomeAmount(e.target.value)} placeholder="0.000"
-                  style={{ background: "#0A1628", border: "1px solid #52BE8033", borderRadius: 12, padding: "12px 16px", color: "#F5F0E8", fontFamily: "Cairo, sans-serif", fontSize: 14, width: "100%", outline: "none", boxSizing: "border-box" as any }} />
+                <input type="number" value={incomeAmount} onChange={e => setIncomeAmount(e.target.value)} placeholder="0.000" style={inputStyle} />
               </div>
               <div>
                 <label style={{ color: "#8899AA", fontSize: 12, display: "block", marginBottom: 6, fontFamily: "Cairo, sans-serif" }}>المصدر</label>
-                <input value={incomeSource} onChange={e => setIncomeSource(e.target.value)} placeholder="عيدية، مكافأة، عمل حر..."
-                  style={{ background: "#0A1628", border: "1px solid #52BE8033", borderRadius: 12, padding: "12px 16px", color: "#F5F0E8", fontFamily: "Cairo, sans-serif", fontSize: 14, width: "100%", outline: "none", boxSizing: "border-box" as any }} />
+                <input value={incomeSource} onChange={e => setIncomeSource(e.target.value)} placeholder="عيدية، مكافأة، عمل حر..." style={inputStyle} />
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {["عيدية", "مكافأة", "عمل حر", "بيع", "هدية"].map(s => (
                   <button key={s} onClick={() => setIncomeSource(s)} style={{
                     background: incomeSource === s ? "#52BE8033" : "#0A1628",
                     border: `1px solid ${incomeSource === s ? "#52BE80" : "#52BE8022"}`,
-                    borderRadius: 20, padding: "5px 12px", color: incomeSource === s ? "#52BE80" : "#667788",
+                    borderRadius: 20, padding: "5px 12px",
+                    color: incomeSource === s ? "#52BE80" : "#667788",
                     fontFamily: "Cairo, sans-serif", fontSize: 12, cursor: "pointer",
                   }}>{s}</button>
                 ))}
               </div>
               <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-                <button onClick={() => setShowIncomeModal(false)} style={{ flex: 1, background: "#162236", border: "1px solid #445566", borderRadius: 12, padding: 12, color: "#8899AA", fontFamily: "Cairo, sans-serif", cursor: "pointer" }}>إلغاء</button>
+                <button onClick={() => { setShowIncomeModal(false); setIncomeAmount(""); setIncomeSource(""); }} style={{ flex: 1, background: "#162236", border: "1px solid #445566", borderRadius: 12, padding: 12, color: "#8899AA", fontFamily: "Cairo, sans-serif", cursor: "pointer" }}>إلغاء</button>
                 <button onClick={() => {
                   if (!incomeAmount || !incomeSource) return;
                   onAddExtraIncome({ id: generateId(), amount: parseFloat(incomeAmount), source: incomeSource, date: new Date().toISOString() });
@@ -123,6 +129,20 @@ export default function Dashboard({
         </div>
       )}
 
+      {/* Quick Add Extra Income Button */}
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <button onClick={() => setShowIncomeModal(true)} style={{
+          background: "#52BE8011", border: "1px solid #52BE8033",
+          borderRadius: 12, padding: "10px 18px",
+          color: "#52BE80", fontFamily: "Cairo, sans-serif",
+          fontSize: 13, cursor: "pointer",
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          💵 + دخل استثنائي
+        </button>
+      </div>
+
+      {/* Alerts */}
       {alerts.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {alerts.map((a, i) => (
@@ -132,6 +152,7 @@ export default function Dashboard({
               borderRadius: 12, padding: "12px 16px",
               color: a.type === "warn" ? "#D4A017" : "#5DADE2",
               fontSize: 13, display: "flex", alignItems: "center", gap: 8,
+              fontFamily: "Cairo, sans-serif",
             }}>
               {a.type === "warn" ? "⚠️" : "💡"} {a.msg}
             </div>
@@ -139,31 +160,34 @@ export default function Dashboard({
         </div>
       )}
 
+      {/* Stats Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
         <StatCard label="الرصيد المتبقي" value={`${remaining.toFixed(3)} د.ب`} sub="بعد المصروفات" accent={remaining < 100 ? "#EC7063" : "#52BE80"} icon="💰" />
-<TopCatCard expenses={expenses} />
+        <TopCatCard expenses={expenses} />
         <StatCard label="إجمالي المصروفات" value={`${totalSpent.toFixed(3)} د.ب`} sub={`${spentPct.toFixed(0)}٪ من الراتب`} accent="#E8A87C" icon="📊" />
         <StatCard label="أيام على الراتب" value={`${daysUntilPay} يوم`} sub="حتى الراتب القادم" accent="#85C1E9" icon="⏳" />
         <StatCard label="متوسط يومي" value={`${avgDaily.toFixed(3)} د.ب`} sub="هذا الشهر" icon="📈" />
         <StatCard label="مقترح يومياً" value={`${suggestedDaily.toFixed(3)} د.ب`} sub="حتى الراتب القادم" accent="#76D7C4" icon="🎯" />
       </div>
 
+      {/* Spent Progress */}
       <div style={{ background: "linear-gradient(135deg, #0F1C2E, #162236)", border: "1px solid #B8860B33", borderRadius: 16, padding: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, fontFamily: "Cairo, sans-serif" }}>
           <span style={{ color: "#8899AA", fontSize: 13 }}>نسبة الصرف من الراتب</span>
           <span style={{ color: "#B8860B", fontWeight: 700 }}>{spentPct.toFixed(1)}٪</span>
         </div>
         <ProgressBar value={totalSpent} max={totalIncome} color={spentPct > 80 ? "#EC7063" : "#B8860B"} />
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontFamily: "Cairo, sans-serif" }}>
           <span style={{ color: "#667788", fontSize: 11 }}>صُرف: {totalSpent.toFixed(3)} د.ب</span>
-          <span style={{ color: "#667788", fontSize: 11 }}>الراتب: {totalIncome.toFixed(3)} د.ب</span>
+          <span style={{ color: "#667788", fontSize: 11 }}>الدخل: {totalIncome.toFixed(3)} د.ب</span>
         </div>
       </div>
 
+      {/* Recent Transactions */}
       <div style={{ background: "linear-gradient(135deg, #0F1C2E, #162236)", border: "1px solid #B8860B33", borderRadius: 16, overflow: "hidden" }}>
         <div style={{ padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h3 style={{ color: "#F5F0E8", fontSize: 15, margin: 0 }}>آخر العمليات</h3>
-          <span style={{ color: "#B8860B", fontSize: 12 }}>{expenses.length} عملية هذا الشهر</span>
+          <h3 style={{ color: "#F5F0E8", fontFamily: "Cairo, sans-serif", fontSize: 15, margin: 0 }}>آخر العمليات</h3>
+          <span style={{ color: "#B8860B", fontSize: 12, fontFamily: "Cairo, sans-serif" }}>{expenses.length} عملية هذا الشهر</span>
         </div>
         <GoldDivider />
         {recentExp.map((exp, i) => {
@@ -175,10 +199,10 @@ export default function Dashboard({
                   {cat.icon}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: "#F5F0E8", fontSize: 14, fontWeight: 600 }}>{exp.place}</div>
-                  <div style={{ color: "#667788", fontSize: 11 }}>{formatDate(exp.date)} · {cat.name}</div>
+                  <div style={{ color: "#F5F0E8", fontSize: 14, fontFamily: "Cairo, sans-serif", fontWeight: 600 }}>{exp.place}</div>
+                  <div style={{ color: "#667788", fontSize: 11, fontFamily: "Cairo, sans-serif" }}>{formatDate(exp.date)} · {cat.name}</div>
                 </div>
-                <div style={{ color: "#E8A87C", fontWeight: 700, fontSize: 15, flexShrink: 0 }}>
+                <div style={{ color: "#E8A87C", fontWeight: 700, fontSize: 15, flexShrink: 0, fontFamily: "Cairo, sans-serif" }}>
                   {exp.amount.toFixed(3)} د.ب
                 </div>
               </div>
@@ -186,17 +210,21 @@ export default function Dashboard({
             </div>
           );
         })}
+        {recentExp.length === 0 && (
+          <div style={{ padding: 40, textAlign: "center", color: "#667788", fontFamily: "Cairo, sans-serif" }}>لا توجد عمليات بعد</div>
+        )}
       </div>
 
+      {/* Goals Preview */}
       {goals.length > 0 && (
         <div style={{ background: "linear-gradient(135deg, #0F1C2E, #162236)", border: "1px solid #B8860B33", borderRadius: 16, padding: 24 }}>
-          <h3 style={{ color: "#F5F0E8", fontSize: 15, margin: "0 0 16px" }}>الأهداف المالية</h3>
+          <h3 style={{ color: "#F5F0E8", fontFamily: "Cairo, sans-serif", fontSize: 15, margin: "0 0 16px" }}>الأهداف المالية</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {goals.map(g => {
               const pct = Math.min(100, (g.currentAmount / g.targetAmount) * 100);
               return (
                 <div key={g.id}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontFamily: "Cairo, sans-serif" }}>
                     <span style={{ color: "#F5F0E8", fontSize: 14 }}>{g.icon} {g.title}</span>
                     <span style={{ color: "#B8860B", fontSize: 13 }}>{pct.toFixed(0)}٪ · {g.currentAmount} / {g.targetAmount} د.ب</span>
                   </div>
@@ -209,22 +237,27 @@ export default function Dashboard({
       )}
 
       {/* Extra Incomes This Month */}
-      {extraIncomes.filter(i => { const d = new Date(i.date); return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear(); }).length > 0 && (
+      {extraIncomes.filter(i => {
+        const d = new Date(i.date);
+        return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+      }).length > 0 && (
         <div style={{ background: "linear-gradient(135deg, #0F2E1A, #0F1C2E)", border: "1px solid #52BE8033", borderRadius: 16, padding: 24 }}>
           <h3 style={{ color: "#52BE80", fontFamily: "Cairo, sans-serif", fontSize: 15, margin: "0 0 16px" }}>💵 الدخل الإضافي هذا الشهر</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {extraIncomes.filter(i => { const d = new Date(i.date); return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear(); }).map(inc => (
-              <div key={inc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #52BE8011" }}>
-                <div>
-                  <div style={{ color: "#F5F0E8", fontFamily: "Cairo, sans-serif", fontSize: 14 }}>{inc.source}</div>
-                  <div style={{ color: "#667788", fontFamily: "Cairo, sans-serif", fontSize: 11 }}>{formatDate(inc.date)}</div>
+            {extraIncomes
+              .filter(i => { const d = new Date(i.date); return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear(); })
+              .map(inc => (
+                <div key={inc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #52BE8011" }}>
+                  <div>
+                    <div style={{ color: "#F5F0E8", fontFamily: "Cairo, sans-serif", fontSize: 14 }}>{inc.source}</div>
+                    <div style={{ color: "#667788", fontFamily: "Cairo, sans-serif", fontSize: 11 }}>{formatDate(inc.date)}</div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ color: "#52BE80", fontWeight: 700, fontFamily: "Cairo, sans-serif" }}>+{inc.amount.toFixed(3)} د.ب</span>
+                    <button onClick={() => onDeleteExtraIncome(inc.id)} style={{ background: "#EC706322", border: "none", borderRadius: 6, padding: "4px 8px", color: "#EC7063", cursor: "pointer", fontSize: 12 }}>🗑️</button>
+                  </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ color: "#52BE80", fontWeight: 700, fontFamily: "Cairo, sans-serif" }}>+{inc.amount.toFixed(3)} د.ب</span>
-                  <button onClick={() => onDeleteExtraIncome(inc.id)} style={{ background: "#EC706322", border: "none", borderRadius: 6, padding: "4px 8px", color: "#EC7063", cursor: "pointer", fontSize: 12 }}>🗑️</button>
-                </div>
-              </div>
-            ))}
+              ))}
             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, fontFamily: "Cairo, sans-serif" }}>
               <span style={{ color: "#8899AA", fontSize: 13 }}>الإجمالي:</span>
               <span style={{ color: "#52BE80", fontWeight: 700, fontSize: 14 }}>+{thisMonthExtra.toFixed(3)} د.ب</span>
