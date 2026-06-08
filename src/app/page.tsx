@@ -224,7 +224,6 @@ export default function Home() {
           thisWeek.forEach(e => { map[e.category] = (map[e.category] || 0) + e.amount; });
           const top = Object.entries(map).sort((a, b) => Number(b[1]) - Number(a[1]))[0];
           if (!top) return null;
-          const { CATEGORIES } = require ? null : null;
           return top;
         })();
         return (
